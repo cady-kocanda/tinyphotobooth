@@ -1,7 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 
 const backgrounds = [
-  { name: 'Hearts', path: '/assets/hearts.png' }
+  { name: 'Hearts', path: '/assets/hearts.png' },
+  { name: 'Brown', path: '/assets/brown.png' },
+  { name: 'Green Stripes', path: '/assets/greenstripes.png' },
+  { name: 'Multi Stripes', path: '/assets/multistripes.png' },
+  { name: 'White', path: '/assets/white.png' }
 ]
 
 function App() {
