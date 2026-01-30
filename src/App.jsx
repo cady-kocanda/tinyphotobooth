@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 
 const backgrounds = [
-  { name: 'Hearts', path: '/assets/hearts.png' },
-  { name: 'Brown', path: '/assets/brown.png' },
-  { name: 'Green Stripes', path: '/assets/greenstripes.png' },
-  { name: 'Multi Stripes', path: '/assets/multistripes.png' },
-  { name: 'White', path: '/assets/white.png' }
+  { name: 'hearts', path: '/assets/hearts.png' },
+  { name: 'brown', path: '/assets/brown.png' },
+  { name: 'green stripes', path: '/assets/greenstripes.png' },
+  { name: 'multi stripes', path: '/assets/multistripes.png' },
+  { name: 'white', path: '/assets/white.png' }
 ]
 
 function App() {
@@ -30,6 +30,12 @@ function App() {
         .then(stream => {
           streamRef.current = stream
           videoRef.current.srcObject = stream
+          // Wait a moment for video to be ready, then start taking photos automatically
+          videoRef.current.onloadedmetadata = () => {
+            setTimeout(() => {
+              startCountdown()
+            }, 500)
+          }
         })
         .catch(error => {
           alert('Error accessing camera: ' + error.message)
@@ -80,12 +86,8 @@ function App() {
     setPhotos([])
   }
 
-  const takePhoto = () => {
-    if (currentPhotoIndex >= 4) return
-    startCountdown()
-  }
-
   const startCountdown = () => {
+    if (currentPhotoIndex >= 4) return
     let seconds = 3
     setCountdown(seconds)
     
@@ -118,6 +120,19 @@ function App() {
         data[i] = gray
         data[i + 1] = gray
         data[i + 2] = gray
+      }
+      ctx.putImageData(imageData, 0, 0)
+    } else if (selectedFilter === 'sepia') {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i]
+        const g = data[i + 1]
+        const b = data[i + 2]
+        // Sepia filter formula
+        data[i] = Math.min(255, (r * 0.393) + (g * 0.769) + (b * 0.189))
+        data[i + 1] = Math.min(255, (r * 0.349) + (g * 0.686) + (b * 0.168))
+        data[i + 2] = Math.min(255, (r * 0.272) + (g * 0.534) + (b * 0.131))
       }
       ctx.putImageData(imageData, 0, 0)
     }
@@ -162,6 +177,10 @@ function App() {
       setCurrentPhotoIndex(3)
     } else {
       setCurrentPhotoIndex(newIndex)
+      // Automatically start countdown for next photo after a short delay
+      setTimeout(() => {
+        startCountdown()
+      }, 1000)
     }
   }
 
@@ -287,53 +306,154 @@ function App() {
     setFinalImageData(null)
   }
 
+  const Title = () => (
+    <div style={{ 
+      margin: 'clamp(5px, 1vw, 10px)',
+      backgroundColor: '#FFE5E5',
+      padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px)',
+      borderRadius: 'clamp(8px, 1.5vw, 16px)',
+      display: 'inline-block'
+    }}>
+      <img
+        src="/assets/tinyphotoboothlogo.png"
+        alt="tiny photobooth"
+        style={{
+          width: 'clamp(150px, 25vw, 300px)',
+          height: 'auto',
+          display: 'block',
+          borderRadius: 'clamp(8px, 1.5vw, 16px)'
+        }}
+      />
+    </div>
+  )
+
   if (stage === 'setup') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        <h1>Tiny Photobooth</h1>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        gap: 'clamp(5px, 1.5vw, 15px)',
+        width: '100%',
+        maxWidth: '100vw',
+        backgroundColor: '#F5F5DC',
+        minHeight: '100vh',
+        padding: 'clamp(10px, 2vw, 20px)',
+        boxSizing: 'border-box'
+      }}>
+        <Title />
         
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-          <label>Select Background:</label>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
+          <label style={{ fontSize: 'clamp(12px, 2vw, 16px)' }}>select background:</label>
+          <div style={{ 
+            display: 'flex', 
+            gap: 'clamp(6px, 1.5vw, 12px)', 
+            flexWrap: 'nowrap', 
+            justifyContent: 'center',
+            alignItems: 'center',
+            width: '100%',
+            overflowX: 'auto',
+            padding: 'clamp(3px, 0.5vw, 6px)'
+          }}>
             {backgrounds.map((bg, index) => (
-              <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+              <div key={index} style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                gap: 'clamp(2px, 0.5vw, 4px)',
+                flexShrink: 0
+              }}>
                 <img 
                   src={bg.path} 
                   alt={bg.name}
                   style={{ 
-                    width: '200px', 
+                    width: 'clamp(70px, 12vw, 140px)', 
                     height: 'auto',
                     cursor: 'pointer',
-                    border: selectedBackground === bg.path ? '3px solid black' : '1px solid gray'
+                    border: selectedBackground === bg.path ? 'clamp(2px, 0.4vw, 4px) solid black' : 'clamp(1px, 0.2vw, 2px) solid gray'
                   }}
-                  onClick={() => setSelectedBackground(bg.path)}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedBackground(bg.path)
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                  }}
                 />
-                <div>{bg.name}</div>
+                <div style={{ fontSize: 'clamp(10px, 1.5vw, 14px)' }}>{bg.name}</div>
               </div>
             ))}
           </div>
         </div>
         
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-          <label>Select Filter:</label>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
+          <label style={{ fontSize: 'clamp(12px, 2vw, 16px)' }}>select filter:</label>
           <select 
             value={selectedFilter} 
             onChange={(e) => setSelectedFilter(e.target.value)}
+            style={{
+              fontSize: 'clamp(12px, 2vw, 16px)',
+              padding: 'clamp(4px, 1vw, 8px)',
+              minWidth: 'clamp(120px, 20vw, 200px)'
+            }}
           >
-            <option value="normal">Normal</option>
-            <option value="blackwhite">Black & White</option>
+            <option value="normal">normal</option>
+            <option value="blackwhite">black & white</option>
+            <option value="sepia">sepia</option>
           </select>
         </div>
         
-        <button onClick={startPhotobooth}>Start Photobooth</button>
+        <img
+          src="/assets/start.png"
+          alt="start photobooth"
+          onClick={startPhotobooth}
+          style={{
+            width: 'clamp(150px, 25vw, 300px)',
+            height: 'auto',
+            cursor: 'pointer',
+            display: 'block',
+            borderRadius: 'clamp(10px, 1.5vw, 20px)'
+          }}
+        />
       </div>
     )
   }
 
   if (stage === 'photobooth') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-        <video ref={videoRef} autoPlay playsInline style={{ maxWidth: '100%', maxHeight: '70vh' }}></video>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        gap: 'clamp(10px, 3vw, 30px)',
+        width: '100%',
+        maxWidth: '100vw',
+        minHeight: '100vh',
+        backgroundColor: '#000000',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        padding: 'clamp(10px, 2vw, 20px)',
+        boxSizing: 'border-box'
+      }}>
+        <video 
+          ref={videoRef} 
+          autoPlay 
+          playsInline 
+          style={{ 
+            width: 'auto',
+            maxWidth: '90vw', 
+            maxHeight: '70vh',
+            height: 'auto',
+            filter: selectedFilter === 'blackwhite' 
+              ? 'grayscale(100%)' 
+              : selectedFilter === 'sepia' 
+              ? 'sepia(100%)' 
+              : 'none'
+          }}
+        ></video>
         <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
         <canvas ref={finalCanvasRef} style={{ display: 'none' }}></canvas>
         {countdown !== null && (
@@ -342,13 +462,14 @@ function App() {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            fontSize: '100px',
-            zIndex: 10000
+            fontSize: 'clamp(60px, 15vw, 150px)',
+            zIndex: 10000,
+            fontWeight: 'bold'
           }}>
             {countdown}
           </div>
         )}
-        {showFlash && (
+        {showFlash && stage === 'photobooth' && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -360,14 +481,13 @@ function App() {
             pointerEvents: 'none'
           }}></div>
         )}
-        <div>Photo {Math.min(currentPhotoIndex + 1, 4)} of 4</div>
-        {photos.length < 4 && (
-          <button onClick={takePhoto} disabled={countdown !== null}>
-            Take Photo
-          </button>
-        )}
+        <div style={{ fontSize: 'clamp(16px, 3vw, 24px)' }}>
+          Photo {Math.min(currentPhotoIndex + 1, 4)} of 4
+        </div>
         {photos.length === 4 && (
-          <div>Creating your photo strip...</div>
+          <div style={{ fontSize: 'clamp(16px, 3vw, 24px)' }}>
+            creating your photo strip...
+          </div>
         )}
       </div>
     )
@@ -375,14 +495,61 @@ function App() {
 
   if (stage === 'result') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        gap: 'clamp(10px, 3vw, 30px)',
+        width: '100%',
+        maxWidth: '100vw',
+        padding: 'clamp(10px, 2vw, 20px)',
+        backgroundColor: '#F5F5DC',
+        minHeight: '100vh',
+        boxSizing: 'border-box'
+      }}>
+        <Title />
+        <div style={{ fontSize: 'clamp(18px, 3.5vw, 28px)', marginBottom: 'clamp(10px, 2vw, 20px)' }}>
+          printing your photos...
+        </div>
         <canvas 
           ref={finalCanvasRef} 
-          style={{ maxWidth: '100%', height: 'auto', border: '1px solid #ccc', display: 'block' }}
+          className="photostrip-slide"
+          style={{ 
+            maxWidth: 'clamp(150px, 25vw, 300px)', 
+            width: 'auto',
+            height: 'auto', 
+            border: 'clamp(1px, 0.2vw, 2px) solid #ccc', 
+            display: 'block'
+          }}
         ></canvas>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={downloadImage}>Download Image</button>
-          <button onClick={restart}>Start Over</button>
+        <div style={{ 
+          display: 'flex', 
+          gap: 'clamp(8px, 2vw, 16px)',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          <button 
+            onClick={downloadImage}
+            className="photobooth-button"
+            style={{
+              fontSize: 'clamp(14px, 2.5vw, 20px)',
+              padding: 'clamp(8px, 1.5vw, 12px) clamp(16px, 3vw, 24px)',
+              cursor: 'pointer'
+            }}
+          >
+            download image
+          </button>
+          <button 
+            onClick={restart}
+            className="photobooth-button"
+            style={{
+              fontSize: 'clamp(14px, 2.5vw, 20px)',
+              padding: 'clamp(8px, 1.5vw, 12px) clamp(16px, 3vw, 24px)',
+              cursor: 'pointer'
+            }}
+          >
+            start over
+          </button>
         </div>
       </div>
     )
