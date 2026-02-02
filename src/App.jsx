@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 
 const backgrounds = [
   { name: 'hearts', path: '/assets/hearts.png' },
@@ -23,6 +23,28 @@ function App() {
   const finalCanvasRef = useRef(null)
   const streamRef = useRef(null)
   const backgroundImageRef = useRef(null)
+  const screenRef = useRef(null)
+
+  // Wrapper to preserve scroll position during state updates
+  const handleBackgroundSelect = useCallback((path) => {
+    const scrollTop = screenRef.current?.scrollTop || 0
+    setSelectedBackground(path)
+    requestAnimationFrame(() => {
+      if (screenRef.current) {
+        screenRef.current.scrollTop = scrollTop
+      }
+    })
+  }, [])
+
+  const handleFilterSelect = useCallback((filter) => {
+    const scrollTop = screenRef.current?.scrollTop || 0
+    setSelectedFilter(filter)
+    requestAnimationFrame(() => {
+      if (screenRef.current) {
+        screenRef.current.scrollTop = scrollTop
+      }
+    })
+  }, [])
 
   useEffect(() => {
     if (stage === 'photobooth' && videoRef.current) {
@@ -107,10 +129,15 @@ function App() {
     const canvas = canvasRef.current
     const video = videoRef.current
     const ctx = canvas.getContext('2d')
-    
+
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
+    // Mirror the context before drawing the video
+    ctx.save()
+    ctx.translate(canvas.width, 0)
+    ctx.scale(-1, 1)
     ctx.drawImage(video, 0, 0)
+    ctx.restore()
     
     if (selectedFilter === 'blackwhite') {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
@@ -285,18 +312,48 @@ function App() {
       })
   }
 
-  const downloadImage = () => {
-    if (finalImageData) {
-      const link = document.createElement('a')
-      link.download = 'photobooth-image.png'
-      link.href = finalImageData
-      link.click()
-    } else if (finalCanvasRef.current) {
-      const link = document.createElement('a')
-      link.download = 'photobooth-image.png'
-      link.href = finalCanvasRef.current.toDataURL('image/png')
-      link.click()
+  const getFinalImageBlob = () => {
+    if (finalCanvasRef.current) {
+      return new Promise((resolve) => {
+        finalCanvasRef.current.toBlob((blob) => resolve(blob), 'image/png')
+      })
     }
+    if (finalImageData) {
+      return fetch(finalImageData).then((response) => response.blob())
+    }
+    return Promise.resolve(null)
+  }
+
+  const downloadImage = async () => {
+    const blob = await getFinalImageBlob()
+    if (!blob) return
+
+    const filename = 'photobooth-image.png'
+    const file = new File([blob], filename, { type: blob.type || 'image/png' })
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Tiny Photobooth',
+          text: 'Your photo strip'
+        })
+        return
+      } catch (error) {
+        if (error?.name === 'AbortError') return
+      }
+    }
+
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.download = filename
+    link.href = url
+    link.target = '_blank'
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   const restart = () => {
@@ -306,53 +363,49 @@ function App() {
     setFinalImageData(null)
   }
 
-  const Title = () => (
-    <div style={{ 
-      margin: 'clamp(5px, 1vw, 10px)',
-      backgroundColor: '#FFE5E5',
-      padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px)',
-      borderRadius: 'clamp(8px, 1.5vw, 16px)',
-      display: 'inline-block'
-    }}>
-      <img
-        src="/assets/tinyphotoboothlogo.png"
-        alt="tiny photobooth"
-        style={{
-          width: 'clamp(150px, 25vw, 300px)',
-          height: 'auto',
-          display: 'block',
-          borderRadius: 'clamp(8px, 1.5vw, 16px)'
-        }}
-      />
-    </div>
-  )
-
   if (stage === 'setup') {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        gap: 'clamp(5px, 1.5vw, 15px)',
-        width: '100%',
-        maxWidth: '100vw',
-        backgroundColor: '#F5F5DC',
-        minHeight: '100vh',
-        padding: 'clamp(10px, 2vw, 20px)',
-        boxSizing: 'border-box'
-      }}>
-        <Title />
+      <div
+        ref={screenRef}
+        className="screen"
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          gap: 'clamp(3px, 1vw, 8px)',
+          backgroundColor: '#F5F5DC',
+          paddingTop: 'clamp(10px, 3vh, 30px)',
+          paddingBottom: 'clamp(10px, 3vh, 30px)'
+        }}
+      >
+        <div style={{
+          backgroundColor: '#FFE5E5',
+          padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px)',
+          borderRadius: 'clamp(8px, 1.5vw, 16px)',
+        }}>
+          <img
+            src="/assets/tinyphotoboothlogo.png"
+            alt="tiny photobooth"
+            style={{
+              width: 'clamp(150px, 25vw, 300px)',
+              height: 'auto',
+              display: 'block',
+              borderRadius: 'clamp(8px, 1.5vw, 16px)'
+            }}
+          />
+        </div>
         
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'clamp(4px, 1vw, 8px)' }}>
           <label style={{ fontSize: 'clamp(12px, 2vw, 16px)' }}>select background:</label>
           <div style={{ 
             display: 'flex', 
             gap: 'clamp(6px, 1.5vw, 12px)', 
-            flexWrap: 'nowrap', 
+            flexWrap: 'wrap', 
             justifyContent: 'center',
             alignItems: 'center',
             width: '100%',
-            overflowX: 'auto',
+            maxWidth: '90vw',
             padding: 'clamp(3px, 0.5vw, 6px)'
           }}>
             {backgrounds.map((bg, index) => (
@@ -366,19 +419,30 @@ function App() {
                 <img 
                   src={bg.path} 
                   alt={bg.name}
+                  tabIndex={-1}
+                  draggable={false}
                   style={{ 
                     width: 'clamp(70px, 12vw, 140px)', 
                     height: 'auto',
                     cursor: 'pointer',
-                    border: selectedBackground === bg.path ? 'clamp(2px, 0.4vw, 4px) solid black' : 'clamp(1px, 0.2vw, 2px) solid gray'
+                    border: 'clamp(2px, 0.4vw, 4px) solid ' + (selectedBackground === bg.path ? 'black' : 'transparent'),
+                    boxSizing: 'border-box'
                   }}
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    setSelectedBackground(bg.path)
+                    handleBackgroundSelect(bg.path)
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault()
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation()
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleBackgroundSelect(bg.path)
                   }}
                 />
                 <div style={{ fontSize: 'clamp(10px, 1.5vw, 14px)' }}>{bg.name}</div>
@@ -391,9 +455,9 @@ function App() {
           <label style={{ fontSize: 'clamp(12px, 2vw, 16px)' }}>select filter:</label>
           <select 
             value={selectedFilter} 
-            onChange={(e) => setSelectedFilter(e.target.value)}
+            onChange={(e) => handleFilterSelect(e.target.value)}
             style={{
-              fontSize: 'clamp(12px, 2vw, 16px)',
+              fontSize: 'clamp(16px, 2vw, 18px)',
               padding: 'clamp(4px, 1vw, 8px)',
               minWidth: 'clamp(120px, 20vw, 200px)'
             }}
@@ -422,36 +486,30 @@ function App() {
 
   if (stage === 'photobooth') {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        gap: 'clamp(10px, 3vw, 30px)',
-        width: '100%',
-        maxWidth: '100vw',
-        minHeight: '100vh',
-        backgroundColor: '#000000',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        padding: 'clamp(10px, 2vw, 20px)',
-        boxSizing: 'border-box'
-      }}>
+      <div
+        className="screen screen--photobooth"
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'flex-start',
+          gap: 'clamp(10px, 3vw, 30px)',
+          paddingTop: 'clamp(10px, 5vh, 50px)',
+          paddingBottom: 'clamp(10px, 5vh, 50px)'
+        }}
+      >
         <video 
           ref={videoRef} 
           autoPlay 
           playsInline 
+          className="video-preview"
           style={{ 
-            width: 'auto',
-            maxWidth: '90vw', 
-            maxHeight: '70vh',
-            height: 'auto',
             filter: selectedFilter === 'blackwhite' 
               ? 'grayscale(100%)' 
               : selectedFilter === 'sepia' 
               ? 'sepia(100%)' 
-              : 'none'
+              : 'none',
+            transform: 'scaleX(-1)'
           }}
         ></video>
         <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
@@ -495,19 +553,35 @@ function App() {
 
   if (stage === 'result') {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        gap: 'clamp(10px, 3vw, 30px)',
-        width: '100%',
-        maxWidth: '100vw',
-        padding: 'clamp(10px, 2vw, 20px)',
-        backgroundColor: '#F5F5DC',
-        minHeight: '100vh',
-        boxSizing: 'border-box'
-      }}>
-        <Title />
+      <div
+        className="screen"
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'flex-start',
+          gap: 'clamp(5px, 1.5vw, 10px)',
+          backgroundColor: '#F5F5DC',
+          paddingTop: 'clamp(10px, 3vh, 30px)',
+          paddingBottom: 'clamp(10px, 3vh, 30px)'
+        }}
+      >
+        <div style={{
+          backgroundColor: '#FFE5E5',
+          padding: 'clamp(4px, 1vw, 8px) clamp(8px, 2vw, 16px)',
+          borderRadius: 'clamp(8px, 1.5vw, 16px)',
+        }}>
+          <img
+            src="/assets/tinyphotoboothlogo.png"
+            alt="tiny photobooth"
+            style={{
+              width: 'clamp(150px, 25vw, 300px)',
+              height: 'auto',
+              display: 'block',
+              borderRadius: 'clamp(8px, 1.5vw, 16px)'
+            }}
+          />
+        </div>
         <div style={{ fontSize: 'clamp(18px, 3.5vw, 28px)', marginBottom: 'clamp(10px, 2vw, 20px)' }}>
           printing your photos...
         </div>
@@ -515,7 +589,8 @@ function App() {
           ref={finalCanvasRef} 
           className="photostrip-slide"
           style={{ 
-            maxWidth: 'clamp(150px, 25vw, 300px)', 
+            maxWidth: 'min(200px, 40vw)',
+            maxHeight: 'min(60vh, 500px)',
             width: 'auto',
             height: 'auto', 
             border: 'clamp(1px, 0.2vw, 2px) solid #ccc', 
@@ -559,4 +634,3 @@ function App() {
 }
 
 export default App
-
