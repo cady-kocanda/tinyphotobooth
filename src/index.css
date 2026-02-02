@@ -82,9 +82,9 @@ img {
 }
 
 .video-preview {
-  width: min(92vw, 520px);
-  max-height: min(70dvh, calc(100vh - 200px));
-  max-height: min(70dvh, calc(100dvh - 200px));
+  width: min(95vw, 600px);
+  max-height: min(80dvh, calc(100vh - 150px));
+  max-height: min(80dvh, calc(100dvh - 150px));
   height: auto;
   object-fit: cover;
 }

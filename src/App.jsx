@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 const backgrounds = [
   { name: 'hearts', path: '/assets/hearts.png' },
   { name: 'brown', path: '/assets/brown.png' },
+  { name: 'polka dots', path: '/assets/polkadots.png' },
   { name: 'green stripes', path: '/assets/greenstripes.png' },
   { name: 'multi stripes', path: '/assets/multistripes.png' },
   { name: 'white', path: '/assets/white.png' }
@@ -425,7 +426,7 @@ function App() {
                     width: 'clamp(70px, 12vw, 140px)', 
                     height: 'auto',
                     cursor: 'pointer',
-                    border: 'clamp(2px, 0.4vw, 4px) solid ' + (selectedBackground === bg.path ? 'black' : 'transparent'),
+                    border: 'clamp(2px, 0.4vw, 4px) solid ' + (selectedBackground === bg.path ? '#FFB6C1' : 'transparent'),
                     boxSizing: 'border-box'
                   }}
                   onClick={(e) => {
@@ -492,7 +493,7 @@ function App() {
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
-          justifyContent: 'flex-start',
+          justifyContent: 'center',
           gap: 'clamp(10px, 3vw, 30px)',
           paddingTop: 'clamp(10px, 5vh, 50px)',
           paddingBottom: 'clamp(10px, 5vh, 50px)'
@@ -512,6 +513,26 @@ function App() {
             transform: 'scaleX(-1)'
           }}
         ></video>
+        <div style={{
+          display: 'flex',
+          gap: 'clamp(8px, 2vw, 16px)',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {[0, 1, 2, 3].map((index) => (
+            <div
+              key={index}
+              style={{
+                width: 'clamp(10px, 2.5vw, 16px)',
+                height: 'clamp(10px, 2.5vw, 16px)',
+                borderRadius: '50%',
+                border: '2px solid white',
+                backgroundColor: photos.length > index ? 'white' : 'transparent',
+                transition: 'background-color 0.3s ease'
+              }}
+            />
+          ))}
+        </div>
         <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
         <canvas ref={finalCanvasRef} style={{ display: 'none' }}></canvas>
         {countdown !== null && (
