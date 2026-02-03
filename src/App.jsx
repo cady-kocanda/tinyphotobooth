@@ -131,13 +131,43 @@ function App() {
     const video = videoRef.current
     const ctx = canvas.getContext('2d')
 
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    // Use a consistent aspect ratio for all photos (4:3) to match desktop behavior
+    // This ensures photos look the same on mobile and desktop
+    const targetAspectRatio = 4 / 3
+    const videoAspectRatio = video.videoWidth / video.videoHeight
+    
+    let captureWidth, captureHeight, sourceX, sourceY, sourceWidth, sourceHeight
+    
+    if (videoAspectRatio > targetAspectRatio) {
+      // Video is wider than target - crop sides
+      captureHeight = video.videoHeight
+      captureWidth = captureHeight * targetAspectRatio
+      sourceX = (video.videoWidth - captureWidth) / 2
+      sourceY = 0
+      sourceWidth = captureWidth
+      sourceHeight = captureHeight
+    } else {
+      // Video is taller than target - crop top/bottom
+      captureWidth = video.videoWidth
+      captureHeight = captureWidth / targetAspectRatio
+      sourceX = 0
+      sourceY = (video.videoHeight - captureHeight) / 2
+      sourceWidth = captureWidth
+      sourceHeight = captureHeight
+    }
+    
+    canvas.width = captureWidth
+    canvas.height = captureHeight
+    
+    // Draw the cropped video frame with mirroring
     // Mirror the context before drawing the video
     ctx.save()
     ctx.translate(canvas.width, 0)
     ctx.scale(-1, 1)
-    ctx.drawImage(video, 0, 0)
+    // When mirroring, we need to adjust sourceX to account for the flip
+    // The sourceX from the right side becomes the left side after mirroring
+    const mirroredSourceX = video.videoWidth - sourceX - sourceWidth
+    ctx.drawImage(video, mirroredSourceX, sourceY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height)
     ctx.restore()
     
     if (selectedFilter === 'blackwhite') {
@@ -282,11 +312,31 @@ function App() {
         img.onload = () => {
           console.log(`Photo ${index + 1} loaded, dimensions:`, img.width, 'x', img.height)
           const photoY = startY + (spacing * index)
-          console.log(`Drawing photo ${index + 1} at position:`, photoX, photoY, 'with size:', photoWidth, 'x', photoHeight)
           
-          // Draw the photo onto the canvas
-          // Use the full source image and scale it to fit
-          ctx.drawImage(img, 0, 0, img.width, img.height, photoX, photoY, photoWidth, photoHeight)
+          // Calculate dimensions that maintain aspect ratio and fit within the frame
+          const photoAspectRatio = img.width / img.height
+          const frameAspectRatio = photoWidth / photoHeight
+          
+          let drawWidth, drawHeight, drawX, drawY
+          
+          if (photoAspectRatio > frameAspectRatio) {
+            // Photo is wider - fit to width, center vertically
+            drawWidth = photoWidth
+            drawHeight = photoWidth / photoAspectRatio
+            drawX = photoX
+            drawY = photoY + (photoHeight - drawHeight) / 2
+          } else {
+            // Photo is taller - fit to height, center horizontally
+            drawHeight = photoHeight
+            drawWidth = photoHeight * photoAspectRatio
+            drawX = photoX + (photoWidth - drawWidth) / 2
+            drawY = photoY
+          }
+          
+          console.log(`Drawing photo ${index + 1} at position:`, drawX, drawY, 'with size:', drawWidth, 'x', drawHeight)
+          
+          // Draw the photo onto the canvas maintaining aspect ratio
+          ctx.drawImage(img, 0, 0, img.width, img.height, drawX, drawY, drawWidth, drawHeight)
           console.log(`Photo ${index + 1} drawn successfully`)
           resolve()
         }
