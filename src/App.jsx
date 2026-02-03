@@ -549,20 +549,36 @@ function App() {
           paddingBottom: 'clamp(10px, 5vh, 50px)'
         }}
       >
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          playsInline 
-          className="video-preview"
-          style={{ 
-            filter: selectedFilter === 'blackwhite' 
-              ? 'grayscale(100%)' 
-              : selectedFilter === 'sepia' 
-              ? 'sepia(100%)' 
-              : 'none',
-            transform: 'scaleX(-1)'
+        <div
+          style={{
+            width: 'min(95vw, 600px)',
+            aspectRatio: '4 / 3',
+            overflow: 'hidden',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            maxHeight: 'min(80dvh, calc(100dvh - 150px))'
           }}
-        ></video>
+        >
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            playsInline 
+            className="video-preview"
+            style={{ 
+              filter: selectedFilter === 'blackwhite' 
+                ? 'grayscale(100%)' 
+                : selectedFilter === 'sepia' 
+                ? 'sepia(100%)' 
+                : 'none',
+              transform: 'scaleX(-1)',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center'
+            }}
+          ></video>
+        </div>
         <div style={{
           display: 'flex',
           gap: 'clamp(8px, 2vw, 16px)',
