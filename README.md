@@ -1,6 +1,7 @@
-# Tiny Photobooth
+# tiny photobooth
+<img width="863" height="736" alt="Screenshot 2026-02-18 at 6 46 25 PM" src="https://github.com/user-attachments/assets/253ed73a-f995-4b09-b60e-214fad31cc53" />
 
-A fun, interactive photobooth web application built with React that lets users take 4 photos and create a custom photo strip with various backgrounds and filters.
+a fun, interactive photobooth web application built with React that lets users take 4 photos and create a custom photo strip with various backgrounds and filters.
 
 ## Features
 
